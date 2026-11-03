@@ -91,8 +91,10 @@ const birthdayConfig = {
 
   /* lazy-render scenes when they approach the viewport */
   const sceneIO = new IntersectionObserver(es => es.forEach(e => {
-    if (!e.isIntersecting) return;
-    const el = e.target; sceneIO.unobserve(el);
+    const el = e.target;
+    el.classList.toggle('off', !e.isIntersecting);
+    if (!e.isIntersecting || el.dataset.done) return;
+    el.dataset.done = 1;
     const o = SCENES[el.dataset.scene]; if (o) el.innerHTML = scene(o);
   }), { rootMargin: '400px' });
   $$('[data-scene]').forEach(el => sceneIO.observe(el));
@@ -124,7 +126,7 @@ const birthdayConfig = {
     intro.classList.add('leaving');
     document.body.classList.remove('locked');
     window.scrollTo(0, 0);
-    setTimeout(() => { intro.remove(); const h = $('#hero h1'); h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }, reduce ? 20 : 1450);
+    setTimeout(() => { intro.remove(); const h = $('#hero h1'); h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }, reduce ? 20 : 1000);
   });
 
   /* ---------- Scroll progress / nav / back-to-top ---------- */
@@ -141,9 +143,17 @@ const birthdayConfig = {
   top.addEventListener('click', () => scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }));
 
   const burger = $('#burger'), menu = $('#menu');
-  const setMenu = open => { menu.classList.toggle('open', open); burger.setAttribute('aria-expanded', open); burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu'); };
+  const setMenu = open => { menu.classList.toggle('open', open); scrim.classList.toggle('show', open); burger.setAttribute('aria-expanded', open); burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu'); };
   burger.addEventListener('click', () => setMenu(!menu.classList.contains('open')));
+  const scrim = document.createElement('div'); scrim.className = 'scrim'; document.body.appendChild(scrim);
+  scrim.addEventListener('click', () => setMenu(false));
   $$('a', menu).forEach(a => a.addEventListener('click', () => setMenu(false)));
+  const links = $$('a', menu);
+  const secIO = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    links.forEach(a => a.toggleAttribute('aria-current', a.getAttribute('href') === '#' + e.target.id));
+  }), { rootMargin: '-45% 0px -50% 0px' });
+  ['story', 'brotherhood', 'world', 'letter', 'final'].forEach(id => secIO.observe($('#' + id)));
   addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 
   /* ---------- Timeline ---------- */
@@ -160,14 +170,17 @@ const birthdayConfig = {
   /* ---------- Interactive world ---------- */
   const G = 360;
   const hs = (k, x, y, w, h, label) => `<rect class="hs" data-k="${k}" x="${x}" y="${y}" width="${w}" height="${h}" tabindex="0" role="button" aria-label="${label}"/>`;
+  const mk = (k, x, y, hide) => `<g class="mk" data-m="${k}" ${hide ? 'style="display:none"' : ''}><circle cx="${x}" cy="${y}" r="5" fill="#f1d9a0"/><circle class="ping" cx="${x}" cy="${y}" r="9"/></g>`;
   let pathBlocks = '';
   for (let x = 150; x < 450; x += 20) pathBlocks += R(x, G, 20, 10, (x / 20) % 2 ? '#8a7a5a' : '#7a6c4e');
   const gem = `<g class="gem locked" id="gem">${R(712, G - 52, 36, 36, C.gold)}${R(712, G - 52, 36, 6, '#e6cf98')}${R(724, G - 40, 12, 12, '#8a6a30')}${R(706, G - 16, 48, 16, C.stone)}</g>`;
   const worldExtra = pathBlocks + gem +
-    hs('house', 290, 234, 140, 126, 'The starter house') + hs('path', 140, G - 6, 320, 26, 'The stone path') +
-    hs('lantern1', 248, G - 70, 42, 74, 'A lantern') + hs('lantern2', 438, G - 70, 42, 74, 'Another lantern') +
-    hs('flowers', 88, G - 30, 70, 34, 'Flowers') + hs('flowers', 478, G - 30, 42, 34, 'Flowers') +
-    hs('lake', 520, G, 150, 28, 'The lake') + hs('block', 704, G - 60, 52, 62, 'The special block') +
+    hs('house', 290, 234, 140, 126, 'The starter house') + hs('path', 140, G - 14, 320, 50, 'The stone path') +
+    hs('lantern1', 244, G - 76, 50, 80, 'A lantern') + hs('lantern2', 434, G - 76, 50, 80, 'Another lantern') +
+    hs('flowers', 84, G - 42, 76, 50, 'Flowers') + hs('flowers', 474, G - 42, 50, 50, 'Flowers') +
+    hs('lake', 520, G - 6, 150, 46, 'The lake') + hs('block', 700, G - 66, 60, 68, 'The special block') +
+    mk('house', 360, 205) + mk('path', 300, G + 6) + mk('lantern1', 277, G - 78) + mk('lantern2', 467, G - 78) +
+    mk('flowers', 122, G - 30) + mk('flowers', 499, G - 30) + mk('lake', 595, G + 14) + mk('block', 730, G - 76, true) +
     `<g id="walker" style="transform:translateX(60px)">${player(0, G, BLUE, false)}</g>`;
   const worldSvg = scene({ alt: 'Interactive Minecraft-style world', fit: 'xMidYMid meet', sky: SUNSET, sun: [400, 190], house: 300, trees: [20, 170], lanterns: [250, 440], lake: [520, 150], flowers: [96, 112, 128, 146, 486, 500], seed: 41, extra: worldExtra });
   const wb = $('#worldBox'); wb.innerHTML = worldSvg;
@@ -182,9 +195,18 @@ const birthdayConfig = {
     block: ["The block hums with a warm gold light. Your final surprise is waiting.", '#final', 'Go to the final surprise']
   };
   const found = new Set();
-  const mark = k => $$(`.hs[data-k="${k}"]`, wb).forEach(h => h.classList.add('done'));
+  const mark = k => { $$(`.hs[data-k="${k}"]`, wb).forEach(h => h.classList.add('done')); $$(`.mk[data-m="${k}"]`, wb).forEach(m => m.remove()); };
   let wx = 60;
-  const walkTo = x => { wx = Math.max(10, Math.min(740, x)); walker.style.transform = `translateX(${wx}px)`; };
+  const narrow = matchMedia('(max-width:700px)');
+  const cam = () => {
+    if (!narrow.matches) { wsvg.style.transform = ''; return; }
+    const W = wb.clientWidth, s = Math.max(0, Math.min(W, (wx + 16) / 800 * 2 * W - W / 2));
+    wsvg.style.transform = `translateX(${-s}px)`;
+  };
+  const walkTo = x => { wx = Math.max(10, Math.min(740, x)); walker.style.transform = `translateX(${wx}px)`; cam(); };
+  addEventListener('resize', cam); cam();
+  $('#wl').addEventListener('click', () => walkTo(wx - 80));
+  $('#wr').addEventListener('click', () => walkTo(wx + 80));
   function discover(k, el) {
     if (el) { const b = el.getBBox(); walkTo(b.x + b.width / 2 - 16); }
     const act = $('#worldAction'); act.hidden = true;
@@ -198,7 +220,7 @@ const birthdayConfig = {
     if (href) { act.href = href; act.textContent = label; act.hidden = false; }
     $('#count').textContent = `Discovered ${found.size} / 7`;
     if (['house', 'path'].every(x => found.has(x)) && (found.has('lantern1') || found.has('lantern2')) && $('#gem').classList.contains('locked')) {
-      $('#gem').classList.remove('locked'); toast('Something stirred', 'The special block is unlocked');
+      $('#gem').classList.remove('locked'); $('.mk[data-m="block"]', wb).style.display = ''; toast('Something stirred', 'The special block is unlocked');
     }
     if (k === 'block') toast('Advancement made!', 'The Final Block');
   }
@@ -218,6 +240,7 @@ const birthdayConfig = {
   });
 
   /* ---------- Chest ---------- */
+  const lite = innerWidth < 700 || navigator.hardwareConcurrency <= 4;
   const stage = $('#stage'), chest = $('#chest'), pts = $('#pts');
   const later = (fn, ms) => setTimeout(fn, reduce ? 0 : ms);
   function burst(n) {
@@ -234,7 +257,7 @@ const birthdayConfig = {
   function confetti() {
     if (reduce) return;
     const cols = [C.gold, C.cream, C.grass, '#8a7344'];
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < (lite ? 36 : 70); i++) {
       const c = document.createElement('span'); c.className = 'conf';
       c.style.left = Math.random() * 100 + 'vw'; c.style.background = cols[i % cols.length];
       c.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px'); c.style.setProperty('--rot', (Math.random() * 720) + 'deg');
@@ -245,9 +268,9 @@ const birthdayConfig = {
   chest.addEventListener('click', () => {
     if (stage.classList.contains('open')) return;
     stage.classList.add('open'); chest.setAttribute('aria-label', 'Chest opened');
-    later(() => burst(46), 500);
+    later(() => burst(lite ? 26 : 46), 500);
     later(() => { $('#r1').classList.add('show'); toast('Advancement made!', 'Treasure Hunter'); }, 1200);
-    later(() => { $('#r2').classList.add('show'); confetti(); burst(30); }, 2800);
+    later(() => { $('#r2').classList.add('show'); confetti(); burst(lite ? 16 : 30); }, 2800);
     later(() => $('#r2').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }), 3000);
   });
 
@@ -282,5 +305,6 @@ const birthdayConfig = {
     v ? soundOn() : soundOff();
   }
   sBtn.addEventListener('click', () => setSound(!on));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) soundOff(); else if (on) soundOn(); });
   vol.addEventListener('input', () => { if (el) el.volume = level(); if (master) master.gain.value = level() * .25; });
 })();

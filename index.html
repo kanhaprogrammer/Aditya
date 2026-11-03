@@ -6,6 +6,8 @@
 <title>Happy Birthday, Aditya — A Friendship Built in Blocks</title>
 <meta name="description" content="Two strangers joined the same world. One simple act of kindness became something much bigger.">
 <meta name="theme-color" content="#101311">
+<meta name="color-scheme" content="dark">
+<meta name="format-detection" content="telephone=no">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%235a4331'/%3E%3Crect width='16' height='6' fill='%23647D55'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,15 +138,17 @@
   <div class="wrap">
     <p class="pix">Interactive</p>
     <h2 class="display">A small world, just for you.</h2>
-    <p class="lead center">Tap anything that glows when you hover over it. Tap the ground to walk, or use the arrow keys.</p>
+    <p class="lead center">Tap the glowing dots to explore. Tap the ground, or use the arrows, to walk.</p>
   </div>
   <div class="world" id="worldBox" tabindex="0" aria-label="Interactive Minecraft-style world. Use arrow keys to walk, Tab to move between objects, Enter to interact."></div>
+  <div class="wctl"><button id="wl" type="button" aria-label="Walk left">◀</button><button id="wr" type="button" aria-label="Walk right">▶</button></div>
   <div class="wrap">
     <div class="panel" role="status" aria-live="polite">
       <p id="worldMsg">Explore the world. Start with the little house.</p>
       <a id="worldAction" class="btn small-btn" href="#final" hidden>Go to the final surprise</a>
     </div>
     <p class="count pix" id="count">Discovered 0 / 7</p>
+    <a class="btn small-btn skipw" href="#letter">Continue to the letter</a>
   </div>
 </section>
 
@@ -197,6 +201,7 @@
         <h2 class="display">Happy birthday, <span data-name>Aditya</span>!</h2>
         <p class="serif">You started as a stranger in my Minecraft world. Now you're a permanent part of my story.</p>
         <p class="sigline" data-line></p>
+        <a class="btn small-btn" href="#ending">Continue</a>
       </div>
     </div>
   </div>
